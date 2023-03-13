@@ -9,4 +9,6 @@ fn main() {
     ];
 
     let output = ner_model.predict(&input);
+
+    println!("{:?}", output);
 }
