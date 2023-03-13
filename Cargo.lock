@@ -783,6 +783,7 @@ dependencies = [
 name = "maya"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "rust-bert",
 ]
 
