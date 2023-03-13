@@ -1,84 +1,35 @@
-use rust_bert::pipelines::ner::NERModel;
-use rust_bert::resources::{RemoteResource, Resource};
-use rust_bert::Config;
-use rust_tokenizers::tokenizer::{BertTokenizer, Tokenizer, TruncationStrategy};
-use rust_tokenizers::vocab::{BertVocab, Vocab};
+use rust_bert::pipelines::ner::NerModel;
 
-fn main() {
-    // Load the pre-trained NERModel
-    let config = Config::from_pretrained(
-        Resource::Remote(RemoteResource::from_pretrained(NERModel::NAME)),
-        NERModel::CONFIG_FILE,
-    );
-    let mut ner_model = NERModel::new(config).unwrap();
+fn main() -> anyhow::Result<()> {
+    // Define the entities
+    let entities = vec!["LIGHTS", "ROOM"];
 
-    // Define the corpus of text and the keywords or patterns
-    let corpus = [
-        "Turn on the lights in the living room",
-        "Turn off the fan in the bedroom",
-        "Increase the temperature in the kitchen",
-        "Set the thermostat to 22 degrees",
-        "Turn on the microwave",
-        "Lights off",
-    ];
-    let keywords = vec![
-        "turn on",
-        "turn off",
-        "increase",
-        "decrease",
-        "set",
-        "temperature",
-        "light",
-        "fan",
-        "microwave",
+    // Collect training data using distant supervision
+    let train_data = vec![
+        ("Turn on the lights in the living room", "Turn on the [B-LIGHTS]lights in the [B-ROOM]living room[E-ROOM][E-LIGHTS]"),
+        ("Dim the lights in the bedroom", "Dim the [B-LIGHTS]lights in the [B-ROOM]bedroom[E-ROOM][E-LIGHTS]"),
+        ("Set the thermostat to 70 degrees in the living room", "Set the thermostat to 70 degrees in the [B-ROOM]living room[E-ROOM]"),
+        ("Turn off the TV in the den", "Turn off the [B-APPLIANCE]TV in the [B-ROOM]den[E-ROOM][E-APPLIANCE]"),
     ];
 
-    // Automatically label the corpus of text using distant supervision
-    let labeled_data = ner_model.distant_supervision(&corpus, &keywords);
+    // Train the NER system
+    let mut model = NerModel::new(Default::default())?;
+    model.train(&train_data)?;
 
-    // Define the label mapping
-    let label_mapping = vec![
-        ("B-DEVICE", 1),
-        ("B-ROOM", 2),
-        ("B-ATTRIBUTE", 3),
-        ("B-VALUE", 4),
-    ]
-    .into_iter()
-    .map(|(label, id)| (label.to_string(), id))
-    .collect::<Vec<_>>();
-
-    // Define the tokenizer and tokenization parameters
-    let vocab = BertVocab::from_pretrained(
-        Resource::Remote(RemoteResource::from_pretrained(BertVocab::NAME)),
-        BertVocab::FILES,
-    );
-    let tokenizer = BertTokenizer::from_vocab(vocab, true);
-    let max_length = 64;
-    let truncation_strategy = TruncationStrategy::LongestFirst;
-
-    // Fine-tune the NERModel on the labeled data
-    let train_results = ner_model.train(
-        &labeled_data,
-        &label_mapping,
-        2,
-        tokenizer,
-        max_length,
-        truncation_strategy,
-    );
-    println!("{:#?}", train_results);
-
-    // Save the fine-tuned model for future use
-    ner_model.save_pretrained("fine_tuned_ner_model_voice_assistant").unwrap();
-
-    // Test the NERModel on new data
-    let test_input = [
-        "Turn on the oven in the kitchen",
-        "Turn off the lights in the bedroom",
-        "Increase the fan speed in the living room",
-        "Set the temperature to 20 degrees",
-        "Turn on the TV in the family room",
-        "Close the curtains in the bedroom",
+    // Evaluate the NER system
+    let eval_data = vec![
+        ("Turn on the lights in the kitchen", "Turn on the [B-LIGHTS]lights in the [B-ROOM]kitchen[E-ROOM][E-LIGHTS]"),
+        ("Lock the front door", "Lock the [B-DOOR]front door[E-DOOR]"),
+        ("Set the temperature to 72 degrees", "Set the temperature to 72 degrees"),
     ];
-    let test_output = ner_model.predict(&test_input);
-    println!("{:#?}", test_output);
+
+    for (input, expected_output) in eval_data {
+        let output = model.predict(&[input.to_owned()])?;
+        println!("Input: {}", input);
+        println!("Expected output: {}", expected_output);
+        println!("Actual output: {:?}", output[0]);
+        println!();
+    }
+
+    Ok(())
 }
