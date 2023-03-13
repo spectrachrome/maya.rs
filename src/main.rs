@@ -14,7 +14,7 @@ fn main() -> anyhow::Result<()> {
 
     // Train the NER system
     let mut model = NERModel::new(Default::default())?;
-    model.train(&train_data)?;
+    model.train_named_entities(&train_data)?;
 
     // Evaluate the NER system
     let eval_data = vec![
@@ -24,12 +24,20 @@ fn main() -> anyhow::Result<()> {
     ];
 
     for (input, expected_output) in eval_data {
-        let output = model.predict(&[input.to_owned()])?;
-        println!("Input: {}", input);
-        println!("Expected output: {}", expected_output);
-        println!("Actual output: {:?}", output[0]);
-        println!();
+        let output = model.predict(&[input.to_owned()]);
+        match output {
+            Ok(predictions) => {
+                println!("Input: {}", input);
+                println!("Expected output: {}", expected_output);
+                println!("Actual output: {:?}", predictions[0]);
+                println!();
+            },
+            Err(error) => {
+                return Err(anyhow!("Failed to predict named entities: {:?}", error));
+            }
+        }
     }
 
     Ok(())
 }
+
