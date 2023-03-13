@@ -1,4 +1,4 @@
-use rust_bert::pipelines::ner::NerModel;
+use rust_bert::pipelines::ner::NERModel;
 
 fn main() -> anyhow::Result<()> {
     // Define the entities
