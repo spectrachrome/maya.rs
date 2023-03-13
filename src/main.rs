@@ -4,11 +4,15 @@ fn main() {
     let ner_model = NERModel::new(Default::default()).unwrap();
 
     let input = [
-        "My name is Amy. I live in Paris.",
-        "Paris is a city in France.",
+        "Turn on the lights in the living room",
+        "Turn off the fan in the bedroom",
+        "Increase the temperature in the kitchen",
+        "Set the thermostat to 22 degrees",
+        "Turn on the microwave",
+        "Lights off",
     ];
 
     let output = ner_model.predict(&input);
 
-    println!("{:?}", output);
+    println!("{:#?}", output);
 }
