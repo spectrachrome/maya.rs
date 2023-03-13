@@ -13,7 +13,7 @@ fn main() -> anyhow::Result<()> {
     ];
 
     // Train the NER system
-    let mut model = NerModel::new(Default::default())?;
+    let mut model = NERModel::new(Default::default())?;
     model.train(&train_data)?;
 
     // Evaluate the NER system
